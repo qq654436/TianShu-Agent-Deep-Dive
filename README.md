@@ -132,6 +132,94 @@ git push
 
 ---
 
+## 🤝 How to Contribute
+
+欢迎贡献！天枢计划是开源的硬核技术 IP 建设引擎。
+
+### 贡献方式
+
+#### 1. 提交猎物提名
+发现优秀的 AI Agent 项目？提交到 `observatory/nominations.md`：
+```markdown
+- [项目名](GitHub URL) - 24h stars 增长理由
+```
+
+#### 2. 改进适配技能
+已有技能的优化建议？
+1. Fork 本仓库
+2. 修改 `skills/{技能名}/SKILL.md`
+3. 提交 PR，描述改进点
+
+#### 3. 新增内容分发渠道
+帮助扩展到更多平台：
+- 知乎专栏自动发布
+- 即刻动态格式化
+- Twitter/LinkedIn 英文摘要
+
+#### 4. 报告问题
+遇到 Bug 或有改进建议？
+- 创建 Issue，标签：`bug` / `enhancement` / `question`
+- 附上详细复现步骤
+
+### 开发环境设置
+
+```bash
+# 克隆仓库
+git clone https://github.com/qq654436/TianShu-Agent-Deep-Dive.git
+cd TianShu-Agent-Deep-Dive
+
+# 安装依赖 (内容分发脚本)
+pip install -r requirements.txt
+
+# 运行测试
+python tests/test_distribution.py
+```
+
+### 代码规范
+- 遵循 PEP 8 (Python) / ESLint (JavaScript)
+- 提交前运行 `pre-commit run --all-files`
+- PR 需通过 CI 检查
+
+---
+
+## 🗺️ Roadmap
+
+### 2026 Q1 (当前季度) ✅
+
+- [x] 天枢计划启动 (2026-03-19)
+- [x] 猎物 #001: obra/superpowers 深度拆解
+- [x] 猎物 #002: jarrodwatts/claude-hud 深度拆解
+- [x] 猎物 #003: langchain-ai/open-swe 深度拆解
+- [x] OpenClaw 适配技能发布 (TDD/子代理驱动)
+- [ ] 内容分发脚本 v1.0 (知乎/即刻)
+- [ ] GitHub Stars 突破 100 🎯
+
+### 2026 Q2 (规划中)
+
+- [ ] 行业情报自动化监控 (每 3 天执行)
+- [ ] OpenClaw Agent Framework 发布
+- [ ] ClawHub 技能市场集成
+- [ ] 社区贡献流程建立
+- [ ] GitHub Stars 突破 500 🎯
+- [ ] 技术博客系列："OpenClaw 如何借鉴企业级 Agent 架构"
+
+### 2026 Q3 (愿景)
+
+- [ ] 支持多平台触发 (Feishu/Telegram/Discord)
+- [ ] 沙箱隔离增强 (Docker/容器化)
+- [ ] 实时状态推送 (WebSocket)
+- [ ] GitHub Stars 突破 1k 🎯
+- [ ] 首个 MVP 产品发布
+
+### 2026 Q4 (愿景)
+
+- [ ] 企业级部署方案
+- [ ] 商业化探索
+- [ ] GitHub Stars 突破 5k 🎯
+- [ ] 天枢计划 2.0 发布
+
+---
+
 ## 📝 合规声明
 
 - 所有输出保持技术客观中立
@@ -147,7 +235,10 @@ git push
 **董事会**: 航哥  
 **沟通渠道**: 飞书
 
+**GitHub Issues**: [提交问题/建议](https://github.com/qq654436/TianShu-Agent-Deep-Dive/issues)  
+**Discord**: [加入社区](https://discord.com/invite/clawd)
+
 ---
 
-**最后更新**: 2026-03-19 12:25 CST  
+**最后更新**: 2026-03-19 13:20 CST  
 **下次观测**: 2026-03-20 09:00 CST
