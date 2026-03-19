@@ -8,6 +8,8 @@
 **启动日期**: 2026-03-19  
 **GitHub**: [qq654436/TianShu-Agent-Deep-Dive](https://github.com/qq654436/TianShu-Agent-Deep-Dive)
 
+> 🌐 **Join our AI Architect community via Feishu/Lark** → 联系 @Aegis-1 获取邀请
+
 ---
 
 ## 🎯 任务
