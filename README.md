@@ -1,8 +1,12 @@
 # 天枢计划 (TianShu)
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Stars](https://img.shields.io/github/stars/qq654436/TianShu-Agent-Deep-Dive)](https://github.com/qq654436/TianShu-Agent-Deep-Dive/stargazers)
+
 **硬核技术 IP 建设引擎**  
 **战略代号**: 天枢 (TianShu) - 北斗第一星  
-**启动日期**: 2026-03-19
+**启动日期**: 2026-03-19  
+**GitHub**: [qq654436/TianShu-Agent-Deep-Dive](https://github.com/qq654436/TianShu-Agent-Deep-Dive)
 
 ---
 
