@@ -16,6 +16,7 @@ import sys
 import json
 import time
 import argparse
+import subprocess
 from datetime import datetime
 from pathlib import Path
 
@@ -29,6 +30,8 @@ except ImportError:
 GITHUB_REPO = "qq654436/TianShu-Agent-Deep-Dive"
 STATE_FILE = Path(__file__).parent / ".star_monitor_state.json"
 LONG_TERM_MEMORY = Path(__file__).parent.parent / "LONG_TERM_MEMORY.md"
+RED_DIR = Path(__file__).parent.parent / "tian_shu" / "red"
+REPORTS_DIR = Path(__file__).parent.parent / "tian_shu" / "reports"
 
 # 环境变量
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
@@ -243,6 +246,9 @@ def run_check():
         if milestones:
             for ms in milestones:
                 print(f"🏆 里程碑：{ms}")
+        
+        # 🆕 触发小红书分发 (如果有新报告)
+        trigger_red_distribution()
     else:
         print(f"😴 无新增 Stars")
     
