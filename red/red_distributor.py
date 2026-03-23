@@ -21,10 +21,11 @@ try:
 except ImportError:
     HAS_REQUESTS = False
 
-# 配置
-AUTH_DIR = Path(__file__).parent.parent.parent / "auth"
+# 配置 - 使用绝对路径避免相对路径问题
+SCRIPT_DIR = Path(__file__).resolve().parent
+AUTH_DIR = SCRIPT_DIR.parent.parent / "auth"
 SESSION_FILE = AUTH_DIR / "red_session.json"
-RED_DIR = Path(__file__).parent
+RED_DIR = SCRIPT_DIR
 
 # 环境变量
 FEISHU_WEBHOOK = os.environ.get("FEISHU_WEBHOOK", "")
@@ -47,11 +48,14 @@ def check_session_valid(session: dict) -> bool:
     # 检查时间 (24 小时内)
     try:
         from datetime import datetime, timedelta
-        ts = datetime.fromisoformat(session.get('timestamp', ''))
+        ts_str = session.get('timestamp', '')
+        # Python 3.6 兼容：使用 strptime 替代 fromisoformat
+        ts = datetime.strptime(ts_str[:19], '%Y-%m-%dT%H:%M:%S')
         if datetime.now() - ts > timedelta(hours=24):
             print(f"⚠️  会话已过期 (超过 24 小时)")
             return False
-    except:
+    except Exception as e:
+        print(f"⚠️  时间检查失败：{e}")
         pass
     
     # 检查 Cookies
@@ -59,9 +63,16 @@ def check_session_valid(session: dict) -> bool:
     if not cookies:
         return False
     
-    # 检查关键 Cookie
-    has_session = any(c.get('name') == 'web_session' for c in cookies)
-    return has_session
+    # 检查关键 Cookie (多个可能的会话标识)
+    session_cookies = ['web_session', 'a1', 'webId', 'gid']
+    has_session = any(c.get('name') in session_cookies for c in cookies)
+    
+    if not has_session:
+        print(f"⚠️  未找到会话 Cookie，但检测到 {len(cookies)}个其他 Cookie")
+        # 宽松模式：只要有 Cookies 就认为可能有效
+        return len(cookies) >= 5
+    
+    return True
 
 
 def extract_report_content(report_path: str) -> dict:
@@ -81,20 +92,41 @@ def extract_report_content(report_path: str) -> dict:
         'tags': []
     }
     
-    # 提取标题
-    match = re.search(r'# 技术评测报告：(.+?)\n', content)
+    # 提取项目名 (支持两种格式)
+    # 格式 1: # 猎物 #004: gsd-build/get-shit-done - 描述
+    match = re.search(r'# 猎物 #\d+: (.+?) - ', content)
     if match:
         data['project'] = match.group(1).strip()
     
-    # 提取 24h Stars
-    match = re.search(r'\*\*24h Stars\*\* \| (.+?)\n', content)
+    # 格式 2: # 技术评测报告：项目名
+    if not data['project']:
+        match = re.search(r'# 技术评测报告：(.+?)\n', content)
+        if match:
+            data['project'] = match.group(1).strip()
+    
+    # 提取 24h Stars (支持两种格式)
+    # 格式 1: 今日 +1,491
+    match = re.search(r'今日 \+(\d+,?\d*)', content)
     if match:
         data['stars_24h'] = match.group(1).strip()
     
-    # 提取评分
-    match = re.search(r'\*\*综合评分\*\*: (.+?)\n', content)
+    # 格式 2: **24h Stars** | xxx
+    if not data['stars_24h']:
+        match = re.search(r'\*\*24h Stars\*\* \| (.+?)\n', content)
+        if match:
+            data['stars_24h'] = match.group(1).strip()
+    
+    # 提取评分 (支持两种格式)
+    # 格式 1: 综合评分：9.5/10
+    match = re.search(r'综合评分.*?(\d+\.?\d*/\d+)', content)
     if match:
         data['score'] = match.group(1).strip()
+    
+    # 格式 2: **综合评分**: xxx
+    if not data['score']:
+        match = re.search(r'\*\*综合评分\*\*: (.+?)\n', content)
+        if match:
+            data['score'] = match.group(1).strip()
     
     # 生成爆款标题
     if data['stars_24h'] and data['project']:
@@ -114,8 +146,20 @@ def extract_report_content(report_path: str) -> dict:
     
     # 提取总结 (结论部分)
     conclusion = re.search(r'## 🔖 结论\n(.*?)(?=\n---|\*\*评测完成时间|$)', content, re.DOTALL)
+    if not conclusion:
+        # 尝试找"结论"部分
+        conclusion = re.search(r'## 结论\n(.*?)(?=\n---|\*\*|$)', content, re.DOTALL)
+    if not conclusion:
+        # 尝试找"拆解总结"部分
+        conclusion = re.search(r'## 📝 拆解总结\n(.*?)(?=\n---|\*\*|$)', content, re.DOTALL)
+    
     if conclusion:
         data['summary'] = conclusion.group(1).strip()[:500]  # 限制 500 字
+    else:
+        #  fallback: 取第一段概述
+        overview = re.search(r'## 📦 项目概述\n(.*?)(?=\n##|\n---|$)', content, re.DOTALL)
+        if overview:
+            data['summary'] = overview.group(1).strip()[:500]
     
     # 标签
     data['tags'] = ['#AI', '#Agent', '#GitHub', '#开源', '#技术评测', '#天枢计划']
@@ -207,7 +251,7 @@ def distribute(report_path: str, auto_login: bool = False) -> bool:
         '--title', content['title']
     ]
     
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
     print(result.stdout)
     
     # 提取输出路径
