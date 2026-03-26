@@ -1,508 +1,408 @@
-# RuFlo 适配技能
+# ruflo-integration SKILL.md
 
-**技能名称**: ruflo-integration  
 **版本**: 1.0.0  
-**兼容性**: Aether-Sync v1.2+  
-**作者**: Sovereign (S.V.) 👁️  
-**来源**: 天枢计划猎物 #010
+**适配目标**: OpenClaw Agent (Sovereign)  
+**原始项目**: ruvnet/ruflo v3.5  
+**天枢计划**: Prey #009
 
 ---
 
-## 🎯 技能目标
-
-将 RuFlo 的核心能力集成到 Aether-Sync，提供:
-- SONA 自学习路由
-- HNSW 向量记忆
-- Agent Booster (WASM)
-- Swarm 编排
-- 成本优化
-
----
-
-## 📦 安装
-
-```bash
-# 通过 ClawHub 安装
-npx clawhub install ruflo-integration
-
-# 或手动安装
-git clone https://github.com/aether-sync/tian_shu.git
-cp tian_shu/skills/ruflo-integration ~/.openclaw/skills/
-
-# 全局安装 (可选)
-npm install -g ruflo@latest
-```
-
----
-
-## 🔧 配置
-
-### 1. 初始化
-
-```bash
-# 项目初始化
-npx ruflo@latest init
-
-# 完整安装 (MCP + 诊断)
-npx ruflo@latest init --full
-
-# Claude Code MCP 集成
-claude mcp add ruflo -- npx ruflo@latest mcp start
-```
-
-### 2. 配置 LLM Providers
+## 技能元数据
 
 ```yaml
-# config.yaml
-providers:
-  - name: claude-sonnet
-    api_key: $ANTHROPIC_API_KEY
-    model: claude-sonnet-4-5
-    priority: 1
-  
-  - name: gpt-4
-    api_key: $OPENAI_API_KEY
-    model: gpt-4-turbo
-    priority: 2
-  
-  - name: gemini-pro
-    api_key: $GOOGLE_API_KEY
-    model: gemini-pro
-    priority: 3
-  
-  - name: ollama
-    base_url: http://localhost:11434
-    model: llama3
-    priority: 4
+name: ruflo-integration
+version: "1.0.0"
+description: "Ruflo 多智能体编排平台 OpenClaw 适配技能。提取 Ruflo 核心设计模式，简化为企业级智能体协调器。"
+argument-hint: 'ruflo swarm deploy, ruflo agent coordinate, ruflo memory query'
+allowed-tools: Bash, Read, Write, Exec, Subagents
+homepage: https://github.com/ruvnet/ruflo
+repository: https://github.com/ruvnet/ruflo
+author: Sovereign (adapted from ruvnet)
+license: MIT
 ```
 
-### 3. 记忆配置
+---
+
+## 核心定位
+
+> "将 Ruflo 的企业级多智能体编排能力简化为 OpenClaw 原生技能，聚焦蜂群协调、记忆系统、性能优化三大核心。"
+
+**不是**: 完整复制 310+ MCP 工具  
+**而是**: 提取可复用的设计模式，适配 OpenClaw 架构
+
+---
+
+## 设计原则
+
+1. **简化优先**: Ruflo 100+ 智能体 → OpenClaw 按需子代理
+2. **原生集成**: 使用 OpenClaw 工具集 (sessions_spawn, subagents, memory/)
+3. **性能导向**: 借鉴 WASM 加速思想，简单任务跳过 LLM
+4. **记忆增强**: 整合 Ruflo 向量记忆理念到 LONG_TERM_MEMORY.md
+
+---
+
+## 核心能力
+
+### 1. 蜂群协调器 (Swarm Coordinator)
+
+**Ruflo 原始设计**:
+```javascript
+swarm_init({
+  topology: "hierarchical",
+  maxAgents: 8,
+  strategy: "specialized",
+  consensus: "raft"
+})
+```
+
+**OpenClaw 适配**:
+```bash
+# 防漂移蜂群配置
+sessions_spawn --task "清晰的任务描述" \
+  --mode "session" \
+  --label "swarm-worker-1"
+
+# 主代理协调多个子代理，模拟 hierarchical topology
+# 使用 subagents steer 进行实时调整
+# 使用 subagents kill 终止异常子代理
+```
+
+**使用场景**:
+- 复杂任务拆分为 6-8 个子代理 (防漂移 maxAgents:8)
+- 主代理作为 Queen 协调者
+- 子代理作为 Workers 执行专项任务
+
+### 2. 意图解析路由 (Intent Router)
+
+**Ruflo 原始设计**:
+```bash
+[AGENT_BOOSTER_AVAILABLE] Intent: var-to-const
+→ Use Edit tool directly, 352x faster than LLM
+
+[TASK_MODEL_RECOMMENDATION] Use model="haiku"
+→ Pass model="haiku" to Task tool for cost savings
+```
+
+**OpenClaw 适配**:
+```bash
+# 执行前解析任务复杂度
+# 简单任务 → 直接使用 edit/write (跳过 LLM)
+# 中等任务 → 使用经济模型
+# 复杂任务 → 使用子代理蜂群
+```
+
+**路由决策树**:
+```
+任务类型判断:
+├─ 文件操作 (创建/编辑/删除) → 直接使用 write/edit (0 LLM 调用)
+├─ 信息检索 (搜索/查询) → web_fetch/web_search (1 LLM 调用)
+├─ 分析任务 (对比/评测) → 子代理蜂群 (3-5 LLM 调用)
+└─ 战略决策 (规划/架构) → 主代理 + 董事会汇报 (5+ LLM 调用)
+```
+
+### 3. 钩子系统 (Hooks System)
+
+**Ruflo 原始设计**: 27 Hooks (before/after tool, before commit, etc.)
+
+**OpenClaw 适配** (强制钩子):
+```markdown
+# AGENTS.md 中定义的钩子:
+- before_tool: 工具调用前记录日志，风险评估
+- after_tool: 工具调用后验证输出，错误捕获
+- before_commit: 文件写入前备份原文件
+- after_session: 会话结束前归档到 memory/
+- on_error: 错误发生时记录 + 通知董事会
+```
+
+**增强钩子** (新增):
+```bash
+# 在关键操作前添加验证步骤
+# 示例：删除文件前
+if [ -f "$file" ]; then
+  cp "$file" "$file.backup"  # before_commit 钩子
+  trash "$file"              # 执行操作
+  echo "Backed up to $file.backup"  # after_tool 钩子
+fi
+```
+
+### 4. 记忆系统增强 (Memory Enhancement)
+
+**Ruflo 原始设计**:
+- HNSW 向量搜索 (~61µs)
+- 知识图谱 PageRank
+- 集体记忆 (8 种类型)
+
+**OpenClaw 适配**:
+```markdown
+# 三层记忆架构 (简化版)
+
+1. 长期记忆: LONG_TERM_MEMORY.md
+   - 高效工作流
+   - 技术发现
+   - 董事会偏好
+   - 系统教训
+
+2. 会话记忆: memory/YYYY-MM-DD.md
+   - 当日详细日志
+   - 关键决策
+   - 错误/异常
+
+3. 项目记忆: global_premium/*/PROJECT_PLAN.md
+   - 里程碑进度
+   - 活跃项目状态
+```
+
+**增强建议** (未来):
+- 添加向量搜索 (ChromaDB 或类似)
+- 实现记忆条目置信度生命周期
+- 跨会话记忆关联
+
+### 5. 性能优化 (Performance Optimization)
+
+**Ruflo 原始设计**:
+- Agent Booster (WASM): 352x 加速
+- Token Optimizer: 30-50% token 减少
+
+**OpenClaw 适配**:
+```bash
+# 1. 简单任务跳过 LLM
+# 文件重命名、移动、删除 → 直接 exec
+
+# 2. 上下文优化
+# 使用 context-cleaner 技能
+# 读取大文件时使用 offset/limit
+
+# 3. 子代理并行
+# 独立任务 → sessions_spawn 并行执行
+# 相关任务 → 单个子代理顺序执行
+```
+
+---
+
+## 使用指南
+
+### 模式 1: 蜂群部署
+
+```bash
+# 部署多智能体蜂群执行复杂任务
+ruflo swarm deploy \
+  --task "分析 GitHub Trending Top 10 项目" \
+  --workers 6 \
+  --topology hierarchical \
+  --consensus raft
+
+# 内部执行:
+# 1. 主代理创建 6 个子代理
+# 2. 每个子代理分析 1-2 个项目
+# 3. 主代理汇总结果
+# 4. 产出综合报告
+```
+
+### 模式 2: 意图路由
+
+```bash
+# 自动判断任务复杂度并路由
+ruflo route \
+  --task "删除临时文件" \
+  --auto-optimize
+
+# 内部执行:
+# 1. 解析任务类型为"简单文件操作"
+# 2. 直接使用 exec trash (跳过 LLM)
+# 3. 记录日志到 memory/
+```
+
+### 模式 3: 记忆查询
+
+```bash
+# 查询历史记忆
+ruflo memory query \
+  --topic "竞争情报" \
+  --timeframe "last-30-days"
+
+# 内部执行:
+# 1. 搜索 LONG_TERM_MEMORY.md
+# 2. 搜索 memory/*.md
+# 3. 汇总相关洞察
+```
+
+### 模式 4: 钩子验证
+
+```bash
+# 执行关键操作前验证
+ruflo verify \
+  --action "delete" \
+  --target "tian_shu/temp/" \
+  --backup true
+
+# 内部执行:
+# 1. before_tool 钩子：记录意图
+# 2. before_commit 钩子：备份目标
+# 3. 执行删除
+# 4. after_tool 钩子：验证结果
+# 5. after_session 钩子：归档日志
+```
+
+---
+
+## 配置
+
+### 环境变量
+
+```bash
+# ~/.config/ruflo/.env
+
+# 蜂群配置
+RUFLO_MAX_AGENTS=8          # 防漂移推荐值
+RUFLO_TOPOLOGY=hierarchical # hierarchical 或 mesh
+RUFLO_CONSENSUS=raft        # raft/bft/gossip
+
+# 性能优化
+RUFLO_SKIP_LLM_SIMPLE=true  # 简单任务跳过 LLM
+RUFLO_CONTEXT_LIMIT=50000   # 上下文字符限制
+
+# 记忆系统
+RUFLO_MEMORY_DIR=memory/    # 会话记忆目录
+RUFLO_LONG_TERM_MEMORY=LONG_TERM_MEMORY.md
+```
+
+### OpenClaw 集成
 
 ```yaml
-# config.yaml
-memory:
-  hnsw:
+# ~/.openclaw/config.yaml
+
+skills:
+  ruflo-integration:
     enabled: true
-    dimensions: 384
-    ef_construction: 200
-    m: 16
-  sqlite:
-    path: ./data/agentdb.sqlite
-    wal_mode: true
-  postgresql:
-    enabled: false  # 企业级选项
-    url: $DATABASE_URL
+    mode: "simplified"  # simplified 或 full
+    hooks:
+      before_tool: true
+      after_tool: true
+      before_commit: true
+      after_session: true
+      on_error: true
 ```
 
 ---
 
-## 🚀 使用
+## 与 Ruflo 原始版本对比
 
-### 基础用法
+| 功能 | Ruflo 原始 | OpenClaw 适配 | 说明 |
+|------|------------|---------------|------|
+| 智能体数量 | 100+ 预定义 | 按需生成 | OpenClaw sessions_spawn |
+| 共识算法 | 5 种 (Raft/BFT/Gossip 等) | 简化为 Raft | 个人使用无需 BFT |
+| 向量搜索 | HNSW (~61µs) | Markdown 文件 | 未来可集成 ChromaDB |
+| 知识图谱 | PageRank + 社区检测 | 手动链接 | 未来可集成 Neo4j |
+| WASM 加速 | 完整实现 | 理念借鉴 | 简单任务跳过 LLM |
+| MCP 工具 | 310+ | 0 (使用 OpenClaw 工具) | 原生集成 |
+| 安装复杂度 | 高 (curl + npm) | 低 (技能文件) | OpenClaw 优势 |
+
+---
+
+## 最佳实践
+
+### 1. 防漂移蜂群配置
 
 ```bash
-# 生成 coding agent
-npx ruflo@latest agent spawn -t coder --name my-coder
+#  ALWAYS 使用此配置进行复杂任务
+sessions_spawn --task "清晰的任务描述" \
+  --mode "session" \
+  --label "worker-1"
 
-# 启动 hive-mind swarm
-npx ruflo@latest hive-mind spawn "实现用户认证系统"
-
-# 列出可用 Agent
-npx ruflo@latest agent list
+# 限制子代理数量 ≤8 (防漂移)
+# 主代理作为 Queen 协调者
+# 使用 subagents steer 实时调整方向
 ```
 
-### Claude Code MCP 工具
+### 2. 钩子强制执行
 
 ```bash
-# 在 Claude Code 中使用
-/swarm_init --objective "开发登录功能" --topology hierarchical
-/agent_spawn --type coder --name auth-coder
-/memory_search --query "authentication patterns"
-/hooks_route --task "fix login bug"
+# 关键操作前后备份
+cp "$file" "$file.backup"  # before_commit
+# 执行操作
+# 验证结果
+echo "Completed: $operation"  # after_tool
 ```
 
-### 自学习工作流
+### 3. 记忆更新规范
 
-```typescript
-// 1. LEARN: 搜索相似模式
-const patterns = await memory_search({
-  query: "task keywords",
-  topK: 5
-});
+```markdown
+# 每次会话结束前更新 LONG_TERM_MEMORY.md
 
-// 2. COORD: 初始化 Swarm
-const swarm = await swarm_init({
-  objective: "Implement feature",
-  topology: "hierarchical",
-  maxAgents: 6
-});
+## 新增发现 (YYYY-MM-DD)
+- [高效工作流]: [描述]
+- [技术发现]: [描述]
+- [系统教训]: [描述]
+```
 
-// 3. EXECUTE: Agent 执行工作
-// (Codex/Claude 实际执行)
+### 4. 意图解析优先
 
-// 4. REMEMBER: 保存成功模式
-await memory_store({
-  key: "auth-pattern-1",
-  value: "JWT refresh token flow",
-  namespace: "patterns"
-});
+```bash
+# 执行任何任务前，先解析:
+# 1. 任务类型 (简单/中等/复杂)
+# 2. 所需工具 (exec/web_fetch/sessions_spawn)
+# 3. 预计 LLM 调用次数
+# 4. 是否需要子代理
+
+# 显示解析结果确认理解
 ```
 
 ---
 
-## 🛠️ 工具集
+## 故障排除
 
-### 259 MCP 工具 (核心子集)
+### 问题 1: 子代理失忆
 
-| 类别 | 工具 | 描述 |
+**症状**: 子代理忘记任务目标  
+**原因**: 上下文被截断  
+**解决**: 
+```bash
+# 使用 subagents steer 重新发送任务描述
+subagents steer --target "worker-1" \
+  --message "继续执行：[任务描述]"
+```
+
+### 问题 2: 蜂群漂移
+
+**症状**: 子代理偏离原始目标  
+**原因**: 缺少协调器  
+**解决**:
+```bash
+# 限制子代理数量 ≤8
+# 主代理定期检查进度 (subagents list)
+# 使用 hierarchical topology (主代理作为 Queen)
+```
+
+### 问题 3: 记忆过载
+
+**症状**: LONG_TERM_MEMORY.md 过大  
+**原因**: 未定期清理  
+**解决**:
+```bash
+# 每月归档旧条目到 memory/archive/
+# 保留最近 90 天的详细记录
+# 使用 context-cleaner 技能
+```
+
+---
+
+## 版本历史
+
+| 版本 | 日期 | 变更 |
 |------|------|------|
-| **Swarm** | `swarm_init` | 初始化 Agent Swarm |
-| | `agent_spawn` | 生成专用 Agent |
-| | `hive_spawn` | 启动 Hive Mind |
-| **Memory** | `memory_search` | HNSW 向量搜索 |
-| | `memory_store` | 存储模式 |
-| | `memory_consolidate` | 记忆整合 |
-| **Routing** | `hooks_route` | 智能任务路由 |
-| | `hooks_progress` | 进度跟踪 |
-| | `agentdb_semantic-route` | 语义路由 |
-| **Optimization** | `agent_booster` | WASM 代码转换 |
-| | `token_optimizer` | Token 压缩 |
-| | `get_optimal_config` | 优化配置 |
-| **Security** | `ai_defence_scan` | 安全扫描 |
-| | `validate_input` | 输入验证 |
-| | `detect_injection` | 注入检测 |
-
-### Agent Booster (WASM)
-
-```typescript
-// 简单代码转换 (<1ms, $0 成本)
-import { AgentBooster } from '@ruflo/booster';
-
-const booster = new AgentBooster();
-
-// var → const
-const result = await booster.transform(code, 'var-to-const');
-
-// 添加 TypeScript 类型
-const typed = await booster.transform(code, 'add-types');
-
-// 添加错误处理
-const safe = await booster.transform(code, 'add-error-handling');
-```
-
-### Token Optimizer
-
-```typescript
-// 减少 30-50% token 使用
-import { getTokenOptimizer } from '@ruflo/integration';
-
-const optimizer = await getTokenOptimizer();
-
-// 压缩 context (32% 减少)
-const ctx = await optimizer.getCompactContext("auth patterns");
-
-// 优化编辑 (352x 加速)
-await optimizer.optimizedEdit(file, oldStr, newStr, "typescript");
-
-// 获取最优配置
-const config = optimizer.getOptimalConfig(agentCount);
-```
+| 1.0.0 | 2026-03-26 | 初始版本，提取 Ruflo 核心设计模式 |
 
 ---
 
-## 🐝 Swarm 编排
+## 参考文档
 
-### 拓扑类型
-
-```javascript
-// Hierarchical (默认，防漂移)
-const swarm1 = await swarm_init({
-  topology: "hierarchical",
-  maxAgents: 6,
-  strategy: "specialized"
-});
-
-// Mesh (点对点)
-const swarm2 = await swarm_init({
-  topology: "mesh",
-  maxAgents: 8
-});
-
-// Ring (环形传递)
-const swarm3 = await swarm_init({
-  topology: "ring",
-  maxAgents: 5
-});
-
-// Star (中心辐射)
-const swarm4 = await swarm_init({
-  topology: "star",
-  maxAgents: 10
-});
-```
-
-### 共识协议
-
-```javascript
-// Raft (领导者协调)
-const consensus1 = await swarm.consensus("raft");
-
-// Byzantine (容错，f < n/3)
-const consensus2 = await swarm.consensus("byzantine");
-
-// Gossip (流行病传播)
-const consensus3 = await swarm.consensus("gossip");
-
-// Weighted (Queen 3x 权重)
-const consensus4 = await swarm.consensus("weighted");
-
-// Majority (简单多数)
-const consensus5 = await swarm.consensus("majority");
-```
-
-### 防漂移配置
-
-```javascript
-//  ALWAYS 用于编码任务
-const antiDriftSwarm = await swarm_init({
-  topology: "hierarchical",  // 单一协调器
-  maxAgents: 6-8,            // 小团队
-  strategy: "specialized",   // 清晰角色
-  consensus: "raft",         // 领导者维护状态
-  checkpoints: "post-task",  // 频繁检查点
-  sharedMemory: true,        // 共享记忆命名空间
-  taskCycles: "short"        // 短任务周期
-});
-```
+- [Ruflo 原始项目](https://github.com/ruvnet/ruflo)
+- [天枢计划 Prey #009 技术评测](../reports/prey_009_technical_review.md)
+- [OpenClaw AGENTS.md](../../AGENTS.md)
+- [OpenClaw SOUL.md](../../SOUL.md)
 
 ---
 
-## 🧠 自学习系统
-
-### SONA 路由
-
-```typescript
-// SONA 自动学习最佳路由
-import { SONARouter } from '@ruflo/sona';
-
-const router = new SONARouter();
-
-// 路由决策 (<0.05ms)
-const decision = await router.route({
-  task: "fix auth bug",
-  context: { complexity: "medium", domain: "security" }
-});
-
-// 输出：{ agent: "security-expert", model: "sonnet", estimated_cost: 0.003 }
-```
-
-### EWC++ 防遗忘
-
-```typescript
-// 保留成功模式，防止灾难性遗忘
-import { EWCConsolidator } from '@ruflo/ewc';
-
-const consolidator = new EWCConsolidator();
-
-// 巩固重要记忆
-await consolidator.consolidate({
-  patterns: successfulPatterns,
-  importance_threshold: 0.7
-});
-```
-
-### HNSW 向量搜索
-
-```typescript
-// 子毫秒级检索
-import { HNSWSearch } from '@ruflo/hnsw';
-
-const search = new HNSWSearch({
-  dimensions: 384,
-  ef_construction: 200,
-  m: 16
-});
-
-// 搜索 (150x-12,500x 加速)
-const results = await search.query("authentication patterns", {
-  topK: 5,
-  threshold: 0.5
-});
-
-// 输出：[{ pattern: "JWT flow", score: 0.85, ... }]
-```
-
----
-
-## 💰 成本优化
-
-### 3-Tier 模型路由
-
-| Tier | Handler | 延迟 | 成本 | 用例 |
-|------|---------|------|------|------|
-| **1** | Agent Booster (WASM) | <1ms | $0 | 简单转换 |
-| **2** | Haiku/Sonnet | 500ms-2s | $0.0002-$0.003 | Bug 修复/功能 |
-| **3** | Opus | 2-5s | $0.015 | 架构设计 |
-
-```typescript
-// 智能路由
-import { IntelligentRouter } from '@ruflo/routing';
-
-const router = new IntelligentRouter();
-
-const handler = await router.routeTask({
-  task: "convert var to const",
-  complexity: "simple"  // → Tier 1 (WASM)
-});
-
-const handler2 = await router.routeTask({
-  task: "implement OAuth flow",
-  complexity: "medium"  // → Tier 2 (Sonnet)
-});
-
-const handler3 = await router.routeTask({
-  task: "design distributed auth",
-  complexity: "complex"  // → Tier 3 (Opus)
-});
-```
-
-### 节省统计
-
-| 优化 | Token 节省 | 实现 |
-|------|-----------|------|
-| ReasoningBank 检索 | -32% | 检索相关模式而非全 context |
-| Agent Booster 编辑 | -15% | 简单编辑跳过 LLM |
-| 缓存 (95% 命中率) | -10% | 重用嵌入和模式 |
-| 最优批量大小 | -20% | 分组相关操作 |
-| **组合** | **30-50%** | 乘法叠加 |
-
----
-
-## 🔒 安全
-
-### AIDefence 扫描
-
-```typescript
-// <10ms 威胁检测
-import { AIDefence } from '@ruflo/security';
-
-const defence = new AIDefence();
-
-const scan = await defence.scan(input, {
-  detect_injection: true,
-  detect_pii: true,
-  detect_jailbreak: true,
-  validate_paths: true
-});
-
-if (scan.threat_level === "high") {
-  await defence.block();
-} else if (scan.threat_level === "medium") {
-  await defence.sanitize();
-}
-```
-
-### Claims System
-
-```typescript
-// 人类-Agent 工作所有权
-import { ClaimsManager } from '@ruflo/claims';
-
-const claims = new ClaimsManager();
-
-// Agent 声明工作
-await claims.claim({
-  task_id: "auth-feature",
-  agent_id: "coder-1",
-  ownership: "full"
-});
-
-// 人类接管
-await claims.handoff({
-  task_id: "auth-feature",
-  from: "coder-1",
-  to: "human-user",
-  context: "partial-implementation"
-});
-
-// 释放工作
-await claims.release({
-  task_id: "auth-feature",
-  agent_id: "coder-1"
-});
-```
-
----
-
-## 📊 性能基准
-
-| 指标 | RuFlo | 基准 |
-|------|-------|------|
-| **路由延迟** | 0.57ms | 100% 准确率 |
-| **HNSW 搜索** | ~61µs | 150x-12,500x 加速 |
-| **Agent Booster** | <1ms | 352x 快于 LLM |
-| **SONA 适应** | <0.05ms | 自学习路由 |
-| **Token 优化** | 30-50% | 成本减少 |
-| **API 成本** | -75% | 智能路由 |
-| **PostgreSQL QPS** | 16,400 | RuVector |
-
----
-
-## 🐛 故障排除
-
-### 常见问题
-
-**Q: MCP 工具未加载**
-```bash
-# 验证 MCP 服务器
-claude mcp list
-# 重启 MCP
-npx ruflo@latest mcp restart
-```
-
-**Q: HNSW 搜索慢**
-```bash
-# 检查索引
-npx ruflo@latest memory status
-# 重建索引
-npx ruflo@latest memory rebuild
-```
-
-**Q: Swarm 漂移**
-```javascript
-// 使用防漂移配置
-const swarm = await swarm_init({
-  topology: "hierarchical",
-  maxAgents: 6,
-  anti_drift: true  // 启用防漂移
-});
-```
-
----
-
-## 📚 参考
-
-- [RuFlo 官方文档](https://github.com/ruvnet/ruflo)
-- [MCP 工具列表](https://github.com/ruvnet/ruflo/blob/main/docs/MCP_TOOLS.md)
-- [架构决策记录](https://github.com/ruvnet/ruflo/blob/main/ADRs/)
-- [性能基准](https://github.com/ruvnet/ruflo/blob/main/BENCHMARKS.md)
-- [Discord 社区](https://discord.com/invite/dfxmpwkG2D)
-
----
-
-## 🔄 更新日志
-
-### v1.0.0 (2026-03-26)
-- 初始版本
-- SONA 自学习路由集成
-- HNSW 向量记忆
-- Agent Booster (WASM)
-- Swarm 编排 (4 拓扑 + 5 共识)
-- 成本优化 (3-tier 路由)
-- Claims System
-
----
-
-**技能状态**: ✅ 生产就绪  
-**最后更新**: 2026-03-26  
-**维护者**: Aether-Sync Team
+**技能维护者**: Sovereign (S.V.) 👁️  
+**天枢计划**: Prey #009  
+**最后更新**: 2026-03-26 10:20 GMT+8
